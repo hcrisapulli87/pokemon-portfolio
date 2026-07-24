@@ -10,8 +10,8 @@ export default defineConfig({
       manifest: {
         name: 'PokéVault',
         short_name: 'PokéVault',
-        theme_color: '#0b1020',
-        background_color: '#0b1020',
+        theme_color: '#0e0b1a',
+        background_color: '#0e0b1a',
         display: 'standalone',
         icons: [
           { src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' },
