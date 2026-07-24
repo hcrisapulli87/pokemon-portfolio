@@ -94,12 +94,22 @@ async function syncSetCards(adapter, setId, totals) {
   totals.variantsUpserted += await upsertVariants(variantRows)
 }
 
-async function syncLang(lang, setFilter, totals, errors) {
+async function syncLang(lang, setFilter, slice, totals, errors) {
   const adapter = adapterFor(lang)
   if (!adapter) return
 
   let sets = await adapter.fetchSets()
   if (setFilter) sets = sets.filter((s) => s.id === setFilter)
+
+  // Report the full count (before slicing) so a driver can page through.
+  totals.setsTotal += sets.length
+
+  // Optional server-side batching: process only sets[from, from+count).
+  if (slice) {
+    const from = Number(slice.from) || 0
+    const count = Number(slice.count) || sets.length
+    sets = sets.slice(from, from + count)
+  }
 
   if (sets.length > 0) {
     totals.setsUpserted += await upsertSets(sets)
@@ -121,6 +131,11 @@ export default async function handler(req, res) {
   try {
     const lang = req.query?.lang
     const setFilter = req.query?.set || null
+    // Server-side batching: ?from=<n>&count=<n> processes a slice of the set list.
+    const slice =
+      req.query?.from != null || req.query?.count != null
+        ? { from: req.query?.from, count: req.query?.count }
+        : null
 
     const langs = lang ? [lang] : ['EN', 'JP']
     for (const l of langs) {
@@ -129,11 +144,16 @@ export default async function handler(req, res) {
       }
     }
 
-    const totals = { setsUpserted: 0, cardsUpserted: 0, variantsUpserted: 0 }
+    const totals = {
+      setsTotal: 0,
+      setsUpserted: 0,
+      cardsUpserted: 0,
+      variantsUpserted: 0,
+    }
     const errors = []
 
     for (const l of langs) {
-      await syncLang(l, setFilter, totals, errors)
+      await syncLang(l, setFilter, slice, totals, errors)
     }
 
     return res.status(200).json({ ...totals, errors })
