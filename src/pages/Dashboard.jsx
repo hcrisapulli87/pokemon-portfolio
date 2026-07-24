@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { setCompletion } from '../lib/completion'
+import StatTile from '../components/StatTile'
+import ProgressRing from '../components/ProgressRing'
+import HeroValueCard from '../components/HeroValueCard'
 
 // ---- helpers ----------------------------------------------------------------
 
@@ -54,18 +57,6 @@ async function completionForSet(setId, uid) {
 
 // ---- presentational pieces --------------------------------------------------
 
-function StatCard({ label, value, note }) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-      <div className="text-xs font-medium uppercase tracking-wide text-gray-400">
-        {label}
-      </div>
-      <div className="mt-1 text-2xl font-bold text-gray-100">{value}</div>
-      {note && <div className="mt-0.5 text-xs text-gray-500">{note}</div>}
-    </div>
-  )
-}
-
 // Inline SVG line chart — no chart library.
 function TrendChart({ points }) {
   const width = 640
@@ -100,17 +91,17 @@ function TrendChart({ points }) {
         className="h-44 w-full"
         preserveAspectRatio="none"
       >
-        <polyline points={area} fill="rgba(99,102,241,0.12)" stroke="none" />
+        <polyline points={area} fill="rgba(103,232,249,0.14)" stroke="none" />
         <polyline
           points={line}
           fill="none"
-          stroke="rgb(129,140,248)"
+          stroke="#67e8f9"
           strokeWidth="2"
           strokeLinejoin="round"
           strokeLinecap="round"
           vectorEffect="non-scaling-stroke"
         />
-        <circle cx={xFor(n - 1)} cy={yFor(latest.total)} r="3.5" fill="rgb(129,140,248)" />
+        <circle cx={xFor(n - 1)} cy={yFor(latest.total)} r="3.5" fill="#67e8f9" />
       </svg>
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 text-xs text-gray-400">
         <span>
@@ -134,40 +125,26 @@ function TrendChart({ points }) {
 }
 
 function CompletionRow({ set, comp }) {
+  const pct = comp?.pct ?? 0
   return (
     <Link
       to={`/sets/${set.id}`}
-      className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 transition hover:border-white/20"
+      className="flex items-center gap-3 rounded-xl border border-white/10 bg-vault-surface p-3 transition hover:border-white/20"
     >
-      <div className="flex h-12 w-16 shrink-0 items-center justify-center rounded-lg bg-[#0b1020] p-1.5">
-        {set.logo_url ? (
-          <img
-            src={set.logo_url}
-            alt={set.name}
-            loading="lazy"
-            className="max-h-full max-w-full object-contain"
-          />
-        ) : (
-          <span className="text-xl text-gray-700">🃏</span>
-        )}
-      </div>
+      <ProgressRing pct={pct} color="#8b7cf6" size={44} thickness={4}>
+        {pct}%
+      </ProgressRing>
       <div className="min-w-0 flex-1">
         <div className="truncate font-medium text-gray-100" title={set.name}>
           {set.name}
         </div>
-        <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-          <div
-            className="h-full rounded-full bg-emerald-500 transition-all"
-            style={{ width: `${comp?.pct ?? 0}%` }}
-          />
-        </div>
-      </div>
-      <div className="shrink-0 text-right text-xs text-gray-400">
-        <div className="text-gray-200">
+        <div className="mt-1 text-xs text-gray-400">
           {comp?.owned ?? 0}/{comp?.total ?? 0}
         </div>
-        <div className="font-semibold text-emerald-400">{comp?.pct ?? 0}%</div>
       </div>
+      <span className="shrink-0 rounded-full bg-emerald-600/20 px-2 py-1 text-[10px] font-semibold text-emerald-300">
+        Chasing ✓
+      </span>
     </Link>
   )
 }
@@ -376,20 +353,18 @@ export default function Dashboard() {
         <p className="text-gray-400">Loading…</p>
       ) : (
         <>
-          {/* Stat cards */}
+          {/* Portfolio total + stat tiles */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Raw collection" value={fmtAUD(rawValue)} />
-            <StatCard
-              label="Graded value"
-              value={fmtAUD(gradedValue)}
-              note="asking prices"
-            />
-            <StatCard
-              label="Total portfolio"
-              value={fmtAUD(total)}
-              note="graded portion is asking"
-            />
-            <StatCard
+            <div className="sm:col-span-2 lg:col-span-1">
+              <HeroValueCard
+                label="Total portfolio"
+                value={fmtAUD(total)}
+                note="graded portion is asking"
+              />
+            </div>
+            <StatTile label="Raw collection" value={fmtAUD(rawValue)} />
+            <StatTile label="Graded value" value={fmtAUD(gradedValue)} note="asking prices" />
+            <StatTile
               label="Cards owned"
               value={collectionQty + gradedCount}
               note={`${collectionQty} raw · ${gradedCount} graded`}
@@ -401,7 +376,7 @@ export default function Dashboard() {
             <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">
               Value trend
             </h2>
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+            <div className="rounded-xl border border-white/10 bg-vault-surface p-4">
               {trend.length >= 2 ? (
                 <TrendChart points={trend} />
               ) : (
