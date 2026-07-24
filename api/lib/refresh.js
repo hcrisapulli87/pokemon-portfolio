@@ -27,15 +27,25 @@ export function cutoffDay(daysAgo, from = new Date()) {
   return d.toISOString().slice(0, 10)
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
 async function fetchTcgplayerPrices(cardId) {
-  const res = await fetch(`${POKEMONTCG_BASE}/cards/${encodeURIComponent(cardId)}`, {
-    headers: { 'X-Api-Key': process.env.POKEMONTCG_API_KEY },
-  })
-  if (!res.ok) {
-    throw new Error(`pokemontcg GET /cards/${cardId} -> ${res.status} ${res.statusText}`)
+  // pokemontcg.io 5xxs intermittently under load — retry those with backoff so a
+  // flaky moment doesn't leave a collection card priceless.
+  let lastErr
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const res = await fetch(`${POKEMONTCG_BASE}/cards/${encodeURIComponent(cardId)}`, {
+      headers: { 'X-Api-Key': process.env.POKEMONTCG_API_KEY },
+    })
+    if (res.ok) {
+      const body = await res.json()
+      return body?.data?.tcgplayer?.prices
+    }
+    lastErr = new Error(`pokemontcg GET /cards/${cardId} -> ${res.status} ${res.statusText}`)
+    if (res.status < 500) throw lastErr
+    await sleep(600 * (attempt + 1))
   }
-  const body = await res.json()
-  return body?.data?.tcgplayer?.prices
+  throw lastErr
 }
 
 async function refreshRawEn(card) {

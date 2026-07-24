@@ -5,8 +5,18 @@ import CardTile from '../components/CardTile'
 import PriceLabel from '../components/PriceLabel'
 import CardSearchOverlay from '../components/CardSearchOverlay'
 
-function priceKey(cardId, variant) {
-  return `${cardId}::${variant}`
+// Pick a price for a collection row: prefer the exact variant, then 'normal',
+// then the highest cached price. Cards are often added as 'normal' while the
+// only cached price is 'holo'/'reverse_holo', so an exact-only match would show
+// nothing — this stays forgiving (matches the search overlay's behaviour).
+function pickPrice(rows, variant) {
+  if (!rows || rows.length === 0) return null
+  const exact = rows.find((r) => r.variant_type === variant)
+  if (exact && exact.market_price != null) return exact.market_price
+  const normal = rows.find((r) => r.variant_type === 'normal')
+  if (normal && normal.market_price != null) return normal.market_price
+  const vals = rows.map((r) => r.market_price).filter((v) => v != null)
+  return vals.length ? Math.max(...vals) : null
 }
 
 export default function Collection() {
@@ -17,6 +27,8 @@ export default function Collection() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [searching, setSearching] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshProgress, setRefreshProgress] = useState({ done: 0, total: 0 })
   const reqId = useRef(0)
 
   const load = useCallback(async () => {
@@ -67,9 +79,9 @@ export default function Collection() {
     const cardById = {}
     for (const c of cardRows || []) cardById[c.id] = c
 
-    const priceByVariant = {}
+    const pricesByCard = {}
     for (const p of priceRows || []) {
-      priceByVariant[priceKey(p.card_id, p.variant_type)] = p.market_price
+      ;(pricesByCard[p.card_id] = pricesByCard[p.card_id] || []).push(p)
     }
 
     const merged = rows.map((r) => {
@@ -78,8 +90,7 @@ export default function Collection() {
         name: r.card_id,
         language: 'EN',
       }
-      const unitPrice =
-        priceByVariant[priceKey(r.card_id, r.variant_type)] ?? null
+      const unitPrice = pickPrice(pricesByCard[r.card_id], r.variant_type)
       const value = unitPrice != null ? unitPrice * (r.quantity || 1) : null
       return { ...r, card, unitPrice, value }
     })
@@ -153,18 +164,59 @@ export default function Collection() {
     }
   }
 
+  // Refresh raw prices for every card in the collection (EN via tcgplayer; JP
+  // has no free raw source yet, so those simply stay blank).
+  async function refreshPrices() {
+    if (refreshing || !session) return
+    const cardIds = [...new Set(items.map((r) => r.card_id))]
+    if (cardIds.length === 0) return
+
+    setRefreshing(true)
+    setRefreshProgress({ done: 0, total: cardIds.length })
+    for (let i = 0; i < cardIds.length; i++) {
+      try {
+        await fetch('/api/price-refresh', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ cardId: cardIds[i] }),
+        })
+      } catch {
+        // best-effort; ignore individual failures
+      }
+      setRefreshProgress({ done: i + 1, total: cardIds.length })
+    }
+    setRefreshing(false)
+    load()
+  }
+
   const totalValue = items.reduce((sum, r) => sum + (r.value ?? 0), 0)
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">Collection</h1>
-        <button
-          onClick={() => setSearching(true)}
-          className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
-        >
-          ＋ Add card
-        </button>
+        <div className="flex items-center gap-2">
+          {items.length > 0 && (
+            <button
+              onClick={refreshPrices}
+              disabled={refreshing}
+              className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm font-medium text-gray-200 transition hover:bg-white/10 disabled:opacity-50"
+            >
+              {refreshing
+                ? `Refreshing ${refreshProgress.done}/${refreshProgress.total}…`
+                : '↻ Refresh prices'}
+            </button>
+          )}
+          <button
+            onClick={() => setSearching(true)}
+            className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
+          >
+            ＋ Add card
+          </button>
+        </div>
       </div>
       {items.length > 0 && (
         <div className="text-sm text-gray-400">
