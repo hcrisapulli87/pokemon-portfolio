@@ -122,12 +122,18 @@ export function mapTcgdexCard(brief, setId) {
 
 // --- thin async fetch wrappers ---
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
 async function getJson(path) {
-  const res = await fetch(`${BASE_URL}${path}`)
-  if (!res.ok) {
-    throw new Error(`tcgdex GET ${path} -> ${res.status} ${res.statusText}`)
+  let lastErr
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const res = await fetch(`${BASE_URL}${path}`)
+    if (res.ok) return res.json()
+    lastErr = new Error(`tcgdex GET ${path} -> ${res.status} ${res.statusText}`)
+    if (res.status < 500) throw lastErr
+    await sleep(800 * (attempt + 1))
   }
-  return res.json()
+  throw lastErr
 }
 
 // GET /sets -> array of set briefs.

@@ -49,12 +49,20 @@ export function mapPokemontcgCard(rawCard, setId) {
 
 // --- thin async fetch wrappers ---
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+// pokemontcg.io returns intermittent 5xx under load — retry those a few times
+// with backoff so a flaky moment doesn't drop a whole set from the seed.
 async function getJson(path) {
-  const res = await fetch(`${BASE_URL}${path}`, { headers: headers() })
-  if (!res.ok) {
-    throw new Error(`pokemontcg GET ${path} -> ${res.status} ${res.statusText}`)
+  let lastErr
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const res = await fetch(`${BASE_URL}${path}`, { headers: headers() })
+    if (res.ok) return res.json()
+    lastErr = new Error(`pokemontcg GET ${path} -> ${res.status} ${res.statusText}`)
+    if (res.status < 500) throw lastErr // client errors won't self-heal
+    await sleep(800 * (attempt + 1))
   }
-  return res.json()
+  throw lastErr
 }
 
 // GET /sets?pageSize=250 with pagination.
