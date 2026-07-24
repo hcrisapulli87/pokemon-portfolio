@@ -102,7 +102,7 @@ export default function Collection() {
         'postgres_changes',
         {
           event: '*',
-          schema: 'public',
+          schema: 'pokevault',
           table: 'collection',
           filter: `user_id=eq.${userId}`,
         },

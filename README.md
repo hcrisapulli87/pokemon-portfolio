@@ -69,21 +69,26 @@ Server-only (Vercel env — never `VITE_`-prefixed):
 
 ## Setup / hand-off checklist (account-bound — do these yourself)
 
-1. **Supabase project** — create a **dedicated** PokéVault project (catalog is
-   tens of thousands of rows; keep the shared Tandem project lean).
+1. **Supabase project** — reuse the **shared** Tandem/Tally/Everafter project
+   (free-tier project limit reached). PokéVault is fully isolated in its own
+   `pokevault` Postgres schema, so it never touches the other apps' tables.
 2. **Run the schema** — paste `supabase/schema.sql` into the Supabase SQL Editor
-   and run. It uses idempotent drop-and-recreate for policies/triggers; the
-   destructive-op warning is about those `drop policy … if exists` lines, not
-   data — there is no `DROP TABLE`/`DELETE`/`TRUNCATE`. Safe to re-run.
-3. **API keys** — get a free `POKEMONTCG_API_KEY` (dev.pokemontcg.io) and an
+   and run. It creates the `pokevault` schema + all tables/policies/grants. Uses
+   idempotent drop-and-recreate for policies only; the destructive-op warning is
+   about those `drop policy … if exists` lines, not data — there is no
+   `DROP TABLE`/`DELETE`/`TRUNCATE`. Safe to re-run.
+3. **Expose the schema** — Dashboard → Settings → API → **Exposed schemas** →
+   add `pokevault` (alongside `public`). The app clients are configured with
+   `{ db: { schema: 'pokevault' } }`, so without this every query 404s.
+4. **API keys** — get a free `POKEMONTCG_API_KEY` (dev.pokemontcg.io) and an
    eBay developer app (`EBAY_APP_ID` / `EBAY_CERT_ID`, Browse API).
-4. **Vercel** — connect the repo; set all env vars above (client + server);
+5. **Vercel** — connect the repo; set all env vars above (client + server);
    generate a random `ADMIN_SYNC_TOKEN`. Deploy.
-5. **Seed the catalog** — call `catalog-sync` (with the admin token) to populate
+6. **Seed the catalog** — call `catalog-sync` (with the admin token) to populate
    sets/cards/variants/images. Start with `?lang=EN` and a single `&set=<id>` to
    sanity-check, then run full.
-6. **Sign in** — open the app, request a magic link, click it in your email.
-7. **Verify** — search a card (EN + JP both show), add to collection, mark a set
+7. **Sign in** — open the app, request a magic link, click it in your email.
+8. **Verify** — search a card (EN + JP both show), add to collection, mark a set
    as chasing, toggle variants (completion %), refresh a Charizard's price, and
    confirm the dashboard totals + trend populate.
 

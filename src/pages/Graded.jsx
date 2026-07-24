@@ -107,7 +107,7 @@ export default function Graded() {
         'postgres_changes',
         {
           event: '*',
-          schema: 'public',
+          schema: 'pokevault',
           table: 'graded',
           filter: `user_id=eq.${userId}`,
         },
