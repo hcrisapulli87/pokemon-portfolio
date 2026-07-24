@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import CardTile from '../components/CardTile'
 import PriceLabel from '../components/PriceLabel'
+import CardSearchOverlay from '../components/CardSearchOverlay'
 
 function priceKey(cardId, variant) {
   return `${cardId}::${variant}`
@@ -15,6 +16,7 @@ export default function Collection() {
   const [items, setItems] = useState([]) // merged rows
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [searching, setSearching] = useState(false)
   const reqId = useRef(0)
 
   const load = useCallback(async () => {
@@ -155,17 +157,27 @@ export default function Collection() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">Collection</h1>
-        {items.length > 0 && (
-          <div className="text-sm text-gray-400">
-            {items.length} {items.length === 1 ? 'entry' : 'entries'} ·{' '}
-            <span className="text-gray-200">
-              Total value <PriceLabel price={totalValue} />
-            </span>
-          </div>
-        )}
+        <button
+          onClick={() => setSearching(true)}
+          className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
+        >
+          ＋ Add card
+        </button>
       </div>
+      {items.length > 0 && (
+        <div className="text-sm text-gray-400">
+          {items.length} {items.length === 1 ? 'entry' : 'entries'} ·{' '}
+          <span className="text-gray-200">
+            Total value <PriceLabel price={totalValue} />
+          </span>
+        </div>
+      )}
+
+      {searching && (
+        <CardSearchOverlay mode="raw" onClose={() => setSearching(false)} />
+      )}
 
       {error && <p className="text-sm text-red-400">{error}</p>}
 
@@ -173,7 +185,8 @@ export default function Collection() {
 
       {!loading && items.length === 0 && !error && (
         <p className="text-gray-400">
-          Your collection is empty. Head to Search to add cards.
+          Your collection is empty. Tap <span className="text-gray-200">＋ Add card</span> to
+          search the catalog and add one.
         </p>
       )}
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import PriceLabel from '../components/PriceLabel'
+import CardSearchOverlay from '../components/CardSearchOverlay'
 
 function priceKey(cardId, company, grade) {
   return `${cardId}::${company}::${Number(grade)}`
@@ -22,6 +23,7 @@ export default function Graded() {
   const [items, setItems] = useState([]) // merged rows
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [searching, setSearching] = useState(false)
   const reqId = useRef(0)
 
   const load = useCallback(async () => {
@@ -138,17 +140,27 @@ export default function Graded() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">Graded</h1>
-        {items.length > 0 && (
-          <div className="text-sm text-gray-400">
-            {items.length} {items.length === 1 ? 'card' : 'cards'} ·{' '}
-            <span className="text-gray-200">
-              Total value <PriceLabel price={totalValue} asking />
-            </span>
-          </div>
-        )}
+        <button
+          onClick={() => setSearching(true)}
+          className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
+        >
+          ＋ Add graded
+        </button>
       </div>
+      {items.length > 0 && (
+        <div className="text-sm text-gray-400">
+          {items.length} {items.length === 1 ? 'card' : 'cards'} ·{' '}
+          <span className="text-gray-200">
+            Total value <PriceLabel price={totalValue} asking />
+          </span>
+        </div>
+      )}
+
+      {searching && (
+        <CardSearchOverlay mode="graded" onClose={() => setSearching(false)} />
+      )}
 
       {error && <p className="text-sm text-red-400">{error}</p>}
 
@@ -156,7 +168,8 @@ export default function Graded() {
 
       {!loading && items.length === 0 && !error && (
         <p className="text-gray-400">
-          No graded cards yet. Add one from Search or your Collection.
+          No graded cards yet. Tap <span className="text-gray-200">＋ Add graded</span> to
+          search the catalog and add one.
         </p>
       )}
 

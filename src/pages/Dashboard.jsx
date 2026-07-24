@@ -15,7 +15,9 @@ const AUD = new Intl.NumberFormat('en-AU', {
 const fmtAUD = (n) => AUD.format(Number(n) || 0)
 
 const variantKey = (cardId, variant) => `${cardId}::${variant}`
-const gradedKey = (cardId, company, grade) => `${cardId}::${company}::${grade}`
+// Normalize grade so a stored "8.50" vs 8.5 can't drop the price match
+// (Graded.jsx keys the same way).
+const gradedKey = (cardId, company, grade) => `${cardId}::${company}::${Number(grade)}`
 
 // From a set of price_cache rows for one card+variant, pick a market price:
 // prefer the 'tcgplayer' source, else the first row that has a price.
@@ -331,6 +333,27 @@ export default function Dashboard() {
     setLoading(true)
     load()
   }, [load])
+
+  // Realtime: refresh totals/trend when the user's collection or graded changes.
+  useEffect(() => {
+    if (!uid) return
+    const channel = supabase
+      .channel(`dashboard:${uid}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'pokevault', table: 'collection', filter: `user_id=eq.${uid}` },
+        () => load()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'pokevault', table: 'graded', filter: `user_id=eq.${uid}` },
+        () => load()
+      )
+      .subscribe()
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [uid, load])
 
   const total = rawValue + gradedValue
 

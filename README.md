@@ -11,7 +11,7 @@ Rebuild of the old Electron `pokemon-portfolio` app. See
 ## Stack
 
 - **Frontend:** React + Vite + Tailwind, PWA (`vite-plugin-pwa`), on Vercel.
-- **Backend:** Supabase (Postgres + Realtime + magic-link Auth), RLS write-own.
+- **Backend:** Supabase (Postgres + Realtime + email/password Auth), RLS write-own.
 - **Serverless (Vercel functions + cron):** all third-party API calls run
   server-side — pokemontcg.io (EN catalog + raw prices), TCGdex (JP catalog),
   eBay-AU Browse (graded asking prices).
@@ -87,7 +87,9 @@ Server-only (Vercel env — never `VITE_`-prefixed):
 6. **Seed the catalog** — call `catalog-sync` (with the admin token) to populate
    sets/cards/variants/images. Start with `?lang=EN` and a single `&set=<id>` to
    sanity-check, then run full.
-7. **Sign in** — open the app, request a magic link, click it in your email.
+7. **Sign in** — open the app, create an account (email + password), then sign in. Each page
+   has its own search (Collection → add raw, Graded → add graded); Sign Out lives on the
+   Settings tab.
 8. **Verify** — search a card (EN + JP both show), add to collection, mark a set
    as chasing, toggle variants (completion %), refresh a Charizard's price, and
    confirm the dashboard totals + trend populate.

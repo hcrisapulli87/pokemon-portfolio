@@ -8,13 +8,13 @@ import Collection from './pages/Collection'
 import Graded from './pages/Graded'
 import MasterSets from './pages/MasterSets'
 import SetDetail from './pages/SetDetail'
-import Search from './pages/Search'
+import Settings from './pages/Settings'
 
 function Layout() {
   return (
     <div className="md:flex">
       <Nav />
-      <main className="flex-1 p-4 pb-24 md:p-8 md:pb-8">
+      <main className="flex-1 p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-8 md:pb-8">
         <Outlet />
       </main>
     </div>
@@ -34,7 +34,7 @@ export default function App() {
               <Route path="/graded" element={<Graded />} />
               <Route path="/sets" element={<MasterSets />} />
               <Route path="/sets/:setId" element={<SetDetail />} />
-              <Route path="/search" element={<Search />} />
+              <Route path="/settings" element={<Settings />} />
             </Route>
           </Route>
         </Routes>
