@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Nav from './components/Nav'
+import BottomNav from './components/BottomNav'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Collection from './pages/Collection'
@@ -17,6 +18,7 @@ function Layout() {
       <main className="flex-1 p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-8 md:pb-8">
         <Outlet />
       </main>
+      <BottomNav />
     </div>
   )
 }

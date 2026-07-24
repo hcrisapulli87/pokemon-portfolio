@@ -9,23 +9,23 @@ const links = [
 ]
 
 function linkClass({ isActive }) {
-  const base =
-    'flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-xs md:flex-none md:flex-row md:justify-start md:gap-3 md:rounded-lg md:px-3 md:py-2 md:text-sm transition'
+  const base = 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition'
   const active = isActive
-    ? ' text-indigo-400 md:bg-indigo-600/20 md:text-indigo-300'
-    : ' text-gray-400 hover:text-gray-200 md:hover:bg-white/5'
+    ? ' bg-holo-indigo/20 text-holo-indigo'
+    : ' text-gray-400 hover:bg-white/5 hover:text-gray-200'
   return base + active
 }
 
+// Desktop sidebar only — the mobile bottom nav lives in BottomNav.jsx.
 export default function Nav() {
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-10 border-t border-white/10 bg-[#0b1020]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:static md:h-screen md:w-56 md:shrink-0 md:flex md:flex-col md:border-t-0 md:border-r md:p-3 md:pb-3">
-      <div className="hidden md:block px-3 py-4 text-lg font-bold">PokéVault</div>
+    <nav className="hidden md:flex md:h-screen md:w-56 md:shrink-0 md:flex-col md:border-r md:border-white/10 md:bg-vault-surface md:p-3">
+      <div className="px-3 py-4 text-lg font-bold">PokéVault</div>
 
-      <div className="flex md:flex-col md:gap-1">
+      <div className="flex flex-col gap-1">
         {links.map((l) => (
           <NavLink key={l.to} to={l.to} end={l.end} className={linkClass}>
-            <span className="text-lg md:text-base">{l.icon}</span>
+            <span className="text-base">{l.icon}</span>
             <span>{l.label}</span>
           </NavLink>
         ))}
