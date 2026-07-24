@@ -62,9 +62,24 @@ async function upsertVariants(variantRows) {
   return count
 }
 
+// Backfill set columns discovered while fetching cards (JP: release_date,
+// series, English name, first-card cover). Only writes non-null fields.
+async function applySetPatch(setId, patch) {
+  if (!patch) return
+  const update = {}
+  for (const k of ['release_date', 'series', 'name_en', 'logo_url']) {
+    if (patch[k] != null) update[k] = patch[k]
+  }
+  if (Object.keys(update).length === 0) return
+  const { error } = await supabaseAdmin.from('sets').update(update).eq('id', setId)
+  if (error) throw new Error(`set patch failed: ${error.message}`)
+}
+
 // Sync one set's cards + variants. Failures are contained by the caller.
 async function syncSetCards(adapter, setId, totals) {
-  const items = await adapter.fetchSetCards(setId)
+  const { items, setPatch } = await adapter.fetchSetCards(setId)
+  await applySetPatch(setId, setPatch)
+
   if (!items || items.length === 0) return
 
   const cards = items.map((it) => it.card)

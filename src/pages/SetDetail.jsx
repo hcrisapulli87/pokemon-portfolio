@@ -56,7 +56,7 @@ export default function SetDetail() {
 
     const { data: setRow, error: setErr } = await supabase
       .from('sets')
-      .select('id,name,series,language,total,logo_url')
+      .select('id,name,name_en,series,language,total,logo_url')
       .eq('id', setId)
       .maybeSingle()
 
@@ -74,7 +74,7 @@ export default function SetDetail() {
 
     const { data: cardRows, error: cardErr } = await supabase
       .from('cards')
-      .select('id,set_id,name,number,rarity,image_small,image_large,language')
+      .select('id,set_id,name,name_en,number,rarity,image_small,image_large,language')
       .eq('set_id', setId)
 
     if (cardErr) {
@@ -255,6 +255,9 @@ export default function SetDetail() {
             </h1>
             <LangBadge language={set?.language} />
           </div>
+          {set?.name_en && set.name_en !== set.name && (
+            <div className="text-sm text-gray-300">{set.name_en}</div>
+          )}
           {set?.series && (
             <div className="text-sm text-gray-400">{set.series}</div>
           )}
@@ -325,6 +328,11 @@ export default function SetDetail() {
                   >
                     {card.name}
                   </div>
+                  {card.name_en && card.name_en !== card.name && (
+                    <div className="truncate text-xs text-gray-400" title={card.name_en}>
+                      {card.name_en}
+                    </div>
+                  )}
                   <div className="text-xs text-gray-400">
                     {card.number ? `#${card.number}` : ''}
                     {card.rarity

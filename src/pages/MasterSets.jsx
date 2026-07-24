@@ -71,7 +71,7 @@ export default function MasterSets() {
       if (setErr) {
         const alt = await supabase
           .from('sets')
-          .select('id,name,series,language,total,logo_url')
+          .select('id,name,name_en,series,language,total,logo_url')
           .order('name', { ascending: true })
         setRows = alt.data
         setErr = alt.error
@@ -167,7 +167,12 @@ export default function MasterSets() {
     const term = search.trim().toLowerCase()
     return sets.filter((s) => {
       if (lang !== 'All' && (s.language || 'EN') !== lang) return false
-      if (term && !s.name.toLowerCase().includes(term)) return false
+      if (
+        term &&
+        !s.name.toLowerCase().includes(term) &&
+        !(s.name_en || '').toLowerCase().includes(term)
+      )
+        return false
       return true
     })
   }, [sets, lang, search])
@@ -238,10 +243,15 @@ export default function MasterSets() {
                   <div className="min-w-0 flex-1">
                     <div
                       className="truncate font-semibold text-gray-100"
-                      title={s.name}
+                      title={s.name_en ? `${s.name} (${s.name_en})` : s.name}
                     >
                       {s.name}
                     </div>
+                    {s.name_en && s.name_en !== s.name && (
+                      <div className="truncate text-xs text-gray-400" title={s.name_en}>
+                        {s.name_en}
+                      </div>
+                    )}
                     <div className="mt-1 flex items-center gap-2 text-xs text-gray-400">
                       <LangBadge language={s.language} />
                       <span>{s.total ?? 0} cards</span>

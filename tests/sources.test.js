@@ -1,5 +1,9 @@
 import { mapPokemontcgSet, mapPokemontcgCard } from '../api/lib/sources/pokemontcg'
-import { mapTcgdexSet, mapTcgdexCard } from '../api/lib/sources/tcgdex'
+import {
+  mapTcgdexSet,
+  mapTcgdexCard,
+  deriveEnglishName,
+} from '../api/lib/sources/tcgdex'
 
 // --- pokemontcg (EN) ---
 
@@ -16,6 +20,7 @@ test('mapPokemontcgSet maps fields and language', () => {
   expect(mapPokemontcgSet(raw)).toEqual({
     id: 'base1',
     name: 'Base',
+    name_en: null,
     series: 'Base',
     language: 'EN',
     printed_total: 102,
@@ -41,6 +46,7 @@ test('mapPokemontcgCard maps images, language, and derives variants', () => {
     id: 'base1-4',
     set_id: 'base1',
     name: 'Charizard',
+    name_en: null,
     number: '4',
     rarity: 'Rare Holo',
     supertype: 'Pokémon',
@@ -65,42 +71,42 @@ test('mapPokemontcgCard tolerates missing images/prices', () => {
 
 // --- tcgdex (JP) ---
 
-test('mapTcgdexSet maps cardCount and appends .png to symbol/logo', () => {
+test('mapTcgdexSet maps cardCount, nulls logo/symbol, adds curated name_en', () => {
+  // S12a is in the curated jp-set-names map -> "VSTAR Universe".
   const brief = {
-    id: 'sv1',
-    name: 'スカーレットex',
-    cardCount: { total: 108, official: 78 },
-    symbol: 'http://t/sv1/symbol',
-    logo: 'http://t/sv1/logo',
+    id: 'S12a',
+    name: 'VSTARユニバース',
+    cardCount: { total: 254, official: 172 },
   }
   expect(mapTcgdexSet(brief)).toEqual({
-    id: 'sv1',
-    name: 'スカーレットex',
+    id: 'S12a',
+    name: 'VSTARユニバース',
+    name_en: 'VSTAR Universe',
     series: null,
     language: 'JP',
-    printed_total: 78,
-    total: 108,
+    printed_total: 172,
+    total: 254,
     release_date: null,
-    symbol_url: 'http://t/sv1/symbol.png',
-    logo_url: 'http://t/sv1/logo.png',
+    symbol_url: null,
+    logo_url: null,
   })
 })
 
-test('mapTcgdexSet nulls symbol/logo when absent', () => {
-  const out = mapTcgdexSet({ id: 'sv1', name: 'X', cardCount: { total: 1 } })
-  expect(out.printed_total).toBeNull()
+test('mapTcgdexSet name_en is null for uncurated sets', () => {
+  const out = mapTcgdexSet({ id: 'zz9', name: 'X', cardCount: { total: 1 } })
+  expect(out.name_en).toBeNull()
   expect(out.total).toBe(1)
-  expect(out.symbol_url).toBeNull()
   expect(out.logo_url).toBeNull()
 })
 
-test('mapTcgdexCard builds low/high image urls, JP language, normal variant', () => {
+test('mapTcgdexCard builds image urls, JP language, English species name', () => {
   const brief = { id: 'sv1-1', localId: '1', name: 'ニャオハ', image: 'http://t/sv1/1' }
   const { card, variants } = mapTcgdexCard(brief, 'sv1')
   expect(card).toEqual({
     id: 'sv1-1',
     set_id: 'sv1',
     name: 'ニャオハ',
+    name_en: 'Sprigatito',
     number: '1',
     rarity: null,
     supertype: null,
@@ -112,7 +118,20 @@ test('mapTcgdexCard builds low/high image urls, JP language, normal variant', ()
 })
 
 test('mapTcgdexCard nulls images when brief has no image', () => {
-  const { card } = mapTcgdexCard({ id: 'sv1-2', localId: '2', name: 'X' }, 'sv1')
+  const { card } = mapTcgdexCard({ id: 'sv1-2', localId: '2', name: 'リザードン' }, 'sv1')
   expect(card.image_small).toBeNull()
   expect(card.image_large).toBeNull()
+  expect(card.name_en).toBe('Charizard')
+})
+
+test('deriveEnglishName: plain, suffixes, mega, region forms, non-matches', () => {
+  expect(deriveEnglishName('パラス')).toBe('Paras')
+  expect(deriveEnglishName('リザードンex')).toBe('Charizard ex')
+  expect(deriveEnglishName('リザードンV')).toBe('Charizard V')
+  expect(deriveEnglishName('リザードンVMAX')).toBe('Charizard VMAX')
+  expect(deriveEnglishName('リザードンVSTAR')).toBe('Charizard VSTAR')
+  expect(deriveEnglishName('メガリザードンex')).toBe('Mega Charizard ex')
+  expect(deriveEnglishName('アローラロコン')).toBe('Alolan Vulpix')
+  expect(deriveEnglishName('博士の研究')).toBeNull() // trainer card
+  expect(deriveEnglishName('')).toBeNull()
 })

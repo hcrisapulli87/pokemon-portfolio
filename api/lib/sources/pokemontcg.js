@@ -15,6 +15,7 @@ export function mapPokemontcgSet(rawSet) {
   return {
     id: rawSet.id,
     name: rawSet.name,
+    name_en: null, // English catalog: primary name is already English
     series: rawSet.series ?? null,
     language: 'EN',
     printed_total: rawSet.printedTotal ?? null,
@@ -31,6 +32,7 @@ export function mapPokemontcgCard(rawCard, setId) {
     id: rawCard.id,
     set_id: setId,
     name: rawCard.name,
+    name_en: null, // already English
     number: rawCard.number ?? null,
     rarity: rawCard.rarity ?? null,
     supertype: rawCard.supertype ?? null,
@@ -72,7 +74,8 @@ export async function fetchSets() {
 }
 
 // GET /cards?q=set.id:${setId}&pageSize=250 with pagination.
-// Returns array of { card, variants, tcgplayerPrices }.
+// Returns { items:[{card,variants,tcgplayerPrices}], setPatch } to match the
+// tcgdex adapter. EN sets already carry release/logo from fetchSets, so no patch.
 export async function fetchSetCards(setId) {
   const pageSize = 250
   let page = 1
@@ -86,5 +89,5 @@ export async function fetchSetCards(setId) {
     if (out.length >= totalCount || data.length === 0) break
     page += 1
   }
-  return out
+  return { items: out, setPatch: null }
 }

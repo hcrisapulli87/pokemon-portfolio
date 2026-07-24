@@ -39,6 +39,11 @@ export default function CardTile({ card, price, onAdd, onAddGraded }) {
         <div className="truncate text-sm font-medium text-gray-100" title={card.name}>
           {card.name}
         </div>
+        {card.name_en && card.name_en !== card.name && (
+          <div className="truncate text-xs text-gray-400" title={card.name_en}>
+            {card.name_en}
+          </div>
+        )}
         <div className="text-xs text-gray-400">
           {card.number ? `#${card.number}` : ''}
           {card.rarity ? `${card.number ? ' · ' : ''}${card.rarity}` : ''}

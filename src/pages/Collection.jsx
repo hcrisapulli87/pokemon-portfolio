@@ -54,7 +54,7 @@ export default function Collection() {
     const [{ data: cardRows }, { data: priceRows }] = await Promise.all([
       supabase
         .from('cards')
-        .select('id,set_id,name,number,rarity,image_small,image_large,language')
+        .select('id,set_id,name,name_en,number,rarity,image_small,image_large,language')
         .in('id', cardIds),
       supabase
         .from('price_cache')

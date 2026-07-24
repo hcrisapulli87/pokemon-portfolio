@@ -45,8 +45,11 @@ export default function CardSearchOverlay({ mode = 'raw', onClose }) {
     const like = `%${term}%`
     const { data: cardRows, error: cardErr } = await supabase
       .from('cards')
-      .select('id,set_id,name,number,rarity,image_small,image_large,language')
-      .or(`name.ilike.${like},number.ilike.${like}`)
+      .select(
+        'id,set_id,name,name_en,number,rarity,image_small,image_large,language,sets(release_date)'
+      )
+      // English name lets JP cards be found by their English species name.
+      .or(`name.ilike.${like},name_en.ilike.${like},number.ilike.${like}`)
       .limit(60)
 
     if (id !== reqId.current) return
@@ -59,7 +62,15 @@ export default function CardSearchOverlay({ mode = 'raw', onClose }) {
       return
     }
 
-    const rows = cardRows || []
+    // Newest sets first (by release date); undated fall to the end.
+    const rows = (cardRows || []).slice().sort((a, b) => {
+      const da = a.sets?.release_date || ''
+      const db = b.sets?.release_date || ''
+      if (da === db) return 0
+      if (!da) return 1
+      if (!db) return -1
+      return db.localeCompare(da)
+    })
     setCards(rows)
 
     if (rows.length > 0) {

@@ -45,6 +45,11 @@ create table if not exists pokevault.card_variants (
   unique (card_id, variant_type)
 );
 
+-- English annotations for the Japanese catalog (added after initial launch).
+-- Idempotent so re-running the whole schema is safe.
+alter table pokevault.sets  add column if not exists name_en text;
+alter table pokevault.cards add column if not exists name_en text;
+
 -- user data
 create table if not exists pokevault.collection (
   id bigserial primary key,
