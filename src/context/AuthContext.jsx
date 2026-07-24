@@ -19,7 +19,8 @@ export function AuthProvider({ children }) {
   const value = {
     session,
     loading,
-    signInWithOtp: (email) => supabase.auth.signInWithOtp({ email }),
+    signIn: (email, password) => supabase.auth.signInWithPassword({ email, password }),
+    signUp: (email, password) => supabase.auth.signUp({ email, password }),
     signOut: () => supabase.auth.signOut(),
   }
 
