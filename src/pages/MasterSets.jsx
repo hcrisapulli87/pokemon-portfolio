@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { setCompletion } from '../lib/completion'
+import ProgressRing from '../components/ProgressRing'
 
 function LangBadge({ language }) {
   const isJP = language === 'JP'
@@ -181,14 +182,14 @@ export default function MasterSets() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="text-2xl font-bold">Sets</h1>
-        <div className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 p-1">
+        <div className="flex items-center gap-1 rounded-lg border border-white/10 bg-vault-surface p-1">
           {['All', 'EN', 'JP'].map((l) => (
             <button
               key={l}
               onClick={() => setLang(l)}
               className={`rounded-md px-3 py-1 text-sm font-medium transition ${
                 lang === l
-                  ? 'bg-indigo-600 text-white'
+                  ? 'bg-holo-cta text-vault-bg'
                   : 'text-gray-400 hover:text-gray-200'
               }`}
             >
@@ -203,7 +204,7 @@ export default function MasterSets() {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Filter sets by name…"
-        className="w-full rounded-lg border border-white/10 bg-[#0b1020] px-4 py-2.5 text-gray-100 placeholder-gray-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+        className="w-full rounded-lg border border-white/10 bg-vault-bg px-4 py-2.5 text-gray-100 placeholder-gray-500 outline-none focus:border-holo-cyan focus:ring-1 focus:ring-holo-cyan"
       />
 
       {error && <p className="text-sm text-red-400">{error}</p>}
@@ -222,13 +223,13 @@ export default function MasterSets() {
             return (
               <div
                 key={s.id}
-                className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 transition hover:border-white/20"
+                className="flex flex-col gap-3 rounded-xl border border-white/10 bg-vault-surface p-4 transition hover:border-white/20"
               >
                 <button
                   onClick={() => navigate(`/sets/${s.id}`)}
                   className="flex items-center gap-3 text-left"
                 >
-                  <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded-lg bg-[#0b1020] p-2">
+                  <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded-lg bg-vault-bg p-2">
                     {s.logo_url ? (
                       <img
                         src={s.logo_url}
@@ -260,21 +261,11 @@ export default function MasterSets() {
                 </button>
 
                 {isChased && comp && (
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between text-xs text-gray-400">
-                      <span>
-                        {comp.owned}/{comp.total}
-                      </span>
-                      <span className="font-semibold text-emerald-400">
-                        {comp.pct}%
-                      </span>
-                    </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-                      <div
-                        className="h-full rounded-full bg-emerald-500 transition-all"
-                        style={{ width: `${comp.pct}%` }}
-                      />
-                    </div>
+                  <div className="flex items-center gap-3">
+                    <ProgressRing pct={comp.pct} color="#8b7cf6" size={36} thickness={3.5} />
+                    <span className="text-xs text-gray-400">
+                      {comp.owned}/{comp.total}
+                    </span>
                   </div>
                 )}
 
@@ -283,8 +274,8 @@ export default function MasterSets() {
                   disabled={!uid}
                   className={`rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:opacity-40 ${
                     isChased
-                      ? 'bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600/30'
-                      : 'bg-indigo-600 text-white hover:bg-indigo-500'
+                      ? 'bg-holo-cta text-vault-bg hover:opacity-90'
+                      : 'bg-vault-surface2 text-gray-300 hover:text-gray-100'
                   }`}
                 >
                   {isChased ? 'Chasing ✓' : 'Chase'}
