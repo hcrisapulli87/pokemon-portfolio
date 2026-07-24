@@ -12,6 +12,7 @@
 // Never writes a fake 0 — a missing price simply writes nothing for that entry.
 
 import { supabaseAdmin } from './lib/supabaseAdmin.js'
+import { requireUser } from './lib/auth.js'
 import { pickTcgVariantPrice } from './lib/normalize.js'
 import { usdToAud, getUsdToAudRate } from './lib/fx.js'
 import * as ebay from './lib/sources/ebay.js'
@@ -135,6 +136,7 @@ async function refreshGraded(card, gradedList) {
 }
 
 export default async function handler(req, res) {
+  if (!(await requireUser(req, res))) return
   try {
     const cardId = req.body?.cardId ?? req.query?.cardId
     const graded = req.body?.graded ?? null

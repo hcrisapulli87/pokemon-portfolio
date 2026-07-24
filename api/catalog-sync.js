@@ -8,6 +8,7 @@
 // This is intentionally large/slow for a full run — it's manual, not on a hot path.
 
 import { supabaseAdmin } from './lib/supabaseAdmin.js'
+import { requireAdmin } from './lib/auth.js'
 import * as pokemontcg from './lib/sources/pokemontcg.js'
 import * as tcgdex from './lib/sources/tcgdex.js'
 
@@ -101,6 +102,7 @@ async function syncLang(lang, setFilter, totals, errors) {
 }
 
 export default async function handler(req, res) {
+  if (!requireAdmin(req, res)) return
   try {
     const lang = req.query?.lang
     const setFilter = req.query?.set || null
