@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import CardTile from '../components/CardTile'
+import HoloCardTile from '../components/HoloCardTile'
 import PriceLabel from '../components/PriceLabel'
 import CardSearchOverlay from '../components/CardSearchOverlay'
 
@@ -221,7 +221,7 @@ export default function Collection() {
           )}
           <button
             onClick={() => setSearching(true)}
-            className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
+            className="rounded-lg bg-holo-cta px-3 py-2 text-sm font-medium text-vault-bg transition hover:opacity-90"
           >
             ＋ Add card
           </button>
@@ -256,9 +256,9 @@ export default function Collection() {
           {items.map((row) => (
             <div key={row.id} className="flex flex-col gap-2">
               <div className="relative">
-                <CardTile card={row.card} price={row.value} />
+                <HoloCardTile card={row.card} price={row.value} />
                 <div className="pointer-events-none absolute left-1.5 top-1.5 flex flex-col gap-1">
-                  <span className="rounded bg-indigo-600/90 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                  <span className="rounded bg-holo-indigo/90 px-1.5 py-0.5 text-[10px] font-semibold text-white">
                     ×{row.quantity}
                   </span>
                   <span className="rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-gray-200">
@@ -271,7 +271,7 @@ export default function Collection() {
                   )}
                   {row.asking && (
                     <span
-                      className="rounded bg-amber-500/80 px-1.5 py-0.5 text-[10px] font-semibold text-black"
+                      className="rounded bg-holo-gold/80 px-1.5 py-0.5 text-[10px] font-semibold text-vault-bg"
                       title="eBay active-listing asking price (best-guess)"
                     >
                       asking

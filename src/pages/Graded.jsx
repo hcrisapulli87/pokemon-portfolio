@@ -3,17 +3,10 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import PriceLabel from '../components/PriceLabel'
 import CardSearchOverlay from '../components/CardSearchOverlay'
+import HoloCardTile from '../components/HoloCardTile'
 
 function priceKey(cardId, company, grade) {
   return `${cardId}::${company}::${Number(grade)}`
-}
-
-function GradeBadge({ company, grade }) {
-  return (
-    <span className="rounded border border-amber-500/30 bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
-      {company} {grade}
-    </span>
-  )
 }
 
 export default function Graded() {
@@ -144,7 +137,7 @@ export default function Graded() {
         <h1 className="text-2xl font-bold">Graded</h1>
         <button
           onClick={() => setSearching(true)}
-          className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
+          className="rounded-lg bg-holo-cta px-3 py-2 text-sm font-medium text-vault-bg transition hover:opacity-90"
         >
           ＋ Add graded
         </button>
@@ -176,56 +169,13 @@ export default function Graded() {
       {!loading && items.length > 0 && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {items.map((row) => (
-            <div
+            <HoloCardTile
               key={row.id}
-              className="flex flex-col overflow-hidden rounded-xl border border-white/10 bg-white/5 transition hover:border-white/20"
-            >
-              <div className="relative aspect-[3/4] w-full bg-[#0b1020]">
-                {row.card.image_small ? (
-                  <img
-                    src={row.card.image_small}
-                    alt={row.card.name}
-                    loading="lazy"
-                    className="h-full w-full object-contain"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-3xl text-gray-700">
-                    🃏
-                  </div>
-                )}
-                <div className="absolute left-1.5 top-1.5">
-                  <GradeBadge company={row.company} grade={row.grade} />
-                </div>
-              </div>
-
-              <div className="flex flex-1 flex-col gap-1 p-2.5">
-                <div
-                  className="truncate text-sm font-medium text-gray-100"
-                  title={row.card.name}
-                >
-                  {row.card.name}
-                </div>
-                {row.card.number && (
-                  <div className="text-xs text-gray-400">#{row.card.number}</div>
-                )}
-                {row.cert_number && (
-                  <div className="truncate text-[11px] text-gray-500" title={row.cert_number}>
-                    Cert {row.cert_number}
-                  </div>
-                )}
-
-                <div className="mt-auto flex items-center justify-between gap-2 pt-1">
-                  <PriceLabel price={row.avgPrice} asking />
-                  <button
-                    onClick={() => handleDelete(row.id)}
-                    className="shrink-0 rounded px-2 py-1 text-xs text-red-400 transition hover:bg-red-500/10"
-                    aria-label="Remove graded card"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
+              card={row.card}
+              price={row.avgPrice}
+              graded={{ company: row.company, grade: row.grade, cert_number: row.cert_number }}
+              onDelete={() => handleDelete(row.id)}
+            />
           ))}
         </div>
       )}
