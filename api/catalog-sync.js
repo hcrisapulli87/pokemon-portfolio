@@ -98,8 +98,20 @@ async function syncLang(lang, setFilter, slice, totals, errors) {
   const adapter = adapterFor(lang)
   if (!adapter) return
 
+  // Single-set path: the set row already exists, so skip the full set-list
+  // fetch (2 paginated upstream calls) and just sync that one set's cards.
+  if (setFilter) {
+    totals.setsTotal += 1
+    try {
+      await syncSetCards(adapter, setFilter, totals)
+    } catch (err) {
+      errors.push({ lang, set: setFilter, error: String(err?.message ?? err) })
+      console.warn(`catalog-sync: set ${setFilter} (${lang}) failed:`, err)
+    }
+    return
+  }
+
   let sets = await adapter.fetchSets()
-  if (setFilter) sets = sets.filter((s) => s.id === setFilter)
 
   // Report the full count (before slicing) so a driver can page through.
   totals.setsTotal += sets.length
