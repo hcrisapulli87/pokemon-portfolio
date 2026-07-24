@@ -59,7 +59,7 @@ export default async function handler(req, res) {
     if (ids.length > 0) {
       const { data: cardRows, error: cardsErr } = await supabaseAdmin
         .from('cards')
-        .select('id, language, name, number, set_id')
+        .select('id, language, name, name_en, number, set_id')
         .in('id', ids)
       if (cardsErr) throw new Error(`cards select failed: ${cardsErr.message}`)
       cards = cardRows ?? []

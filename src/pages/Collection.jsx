@@ -10,13 +10,17 @@ import CardSearchOverlay from '../components/CardSearchOverlay'
 // only cached price is 'holo'/'reverse_holo', so an exact-only match would show
 // nothing — this stays forgiving (matches the search overlay's behaviour).
 function pickPrice(rows, variant) {
-  if (!rows || rows.length === 0) return null
+  if (!rows || rows.length === 0) return { price: null, source: null }
   const exact = rows.find((r) => r.variant_type === variant)
-  if (exact && exact.market_price != null) return exact.market_price
+  if (exact && exact.market_price != null)
+    return { price: exact.market_price, source: exact.source }
   const normal = rows.find((r) => r.variant_type === 'normal')
-  if (normal && normal.market_price != null) return normal.market_price
-  const vals = rows.map((r) => r.market_price).filter((v) => v != null)
-  return vals.length ? Math.max(...vals) : null
+  if (normal && normal.market_price != null)
+    return { price: normal.market_price, source: normal.source }
+  const withPrice = rows.filter((r) => r.market_price != null)
+  if (withPrice.length === 0) return { price: null, source: null }
+  const best = withPrice.reduce((a, b) => (b.market_price > a.market_price ? b : a))
+  return { price: best.market_price, source: best.source }
 }
 
 export default function Collection() {
@@ -70,7 +74,7 @@ export default function Collection() {
         .in('id', cardIds),
       supabase
         .from('price_cache')
-        .select('card_id,variant_type,market_price')
+        .select('card_id,variant_type,market_price,source')
         .in('card_id', cardIds),
     ])
 
@@ -90,9 +94,14 @@ export default function Collection() {
         name: r.card_id,
         language: 'EN',
       }
-      const unitPrice = pickPrice(pricesByCard[r.card_id], r.variant_type)
+      const { price: unitPrice, source } = pickPrice(
+        pricesByCard[r.card_id],
+        r.variant_type
+      )
       const value = unitPrice != null ? unitPrice * (r.quantity || 1) : null
-      return { ...r, card, unitPrice, value }
+      // eBay = active-listing asking prices (JP raw); label as such.
+      const asking = source === 'ebay'
+      return { ...r, card, unitPrice, value, asking }
     })
 
     merged.sort((a, b) => (b.value ?? -1) - (a.value ?? -1))
@@ -258,6 +267,14 @@ export default function Collection() {
                   {row.variant_type !== 'normal' && (
                     <span className="rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-gray-300">
                       {row.variant_type.replace(/_/g, ' ')}
+                    </span>
+                  )}
+                  {row.asking && (
+                    <span
+                      className="rounded bg-amber-500/80 px-1.5 py-0.5 text-[10px] font-semibold text-black"
+                      title="eBay active-listing asking price (best-guess)"
+                    >
+                      asking
                     </span>
                   )}
                 </div>

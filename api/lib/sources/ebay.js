@@ -60,6 +60,64 @@ export async function getEbayToken() {
   return cachedToken.token
 }
 
+// Grading-company / slab keywords used to exclude graded listings from a RAW
+// price search (a PSA 10 slab is 10-50x the raw single and would wreck the avg).
+const GRADED_RE = /\b(PSA|CGC|BGS|SGC|AGS|TCC|GMA|GEM|PRISTINE|GRADED|SLAB)\b/i
+
+// Median is robust to the bundle/lot/mispriced outliers common in raw listings.
+function median(values) {
+  const nums = (values || []).filter((v) => typeof v === 'number' && !Number.isNaN(v)).sort((a, b) => a - b)
+  if (nums.length === 0) return null
+  const mid = Math.floor(nums.length / 2)
+  return nums.length % 2 ? nums[mid] : Math.round(((nums[mid - 1] + nums[mid]) / 2) * 100) / 100
+}
+
+// --- raw single search (JP) ---
+
+// Search eBay AU for a raw (ungraded) single's asking price. Filters results to
+// listings whose title contains the card's collector number (e.g. "003/187")
+// and excludes graded slabs, then returns the MEDIAN asking price.
+// Returns { price, min, max, num } (AUD) or null if no clean listings.
+// ASKING price (active listings) — label "asking" in the UI, never as sold value.
+export async function searchRaw({ name, nameEn, number, isJapanese }) {
+  const token = await getEbayToken()
+  const display = nameEn || name
+  const q = isJapanese
+    ? `${display} ${number} japanese pokemon`
+    : `${display} ${number} pokemon`
+
+  const url = `${BROWSE_SEARCH_URL}?q=${encodeURIComponent(q)}&limit=50`
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'X-EBAY-C-MARKETPLACE-ID': 'EBAY_AU',
+    },
+  })
+  if (!res.ok) {
+    throw new Error(`eBay raw search failed: ${res.status} ${res.statusText}`)
+  }
+  const data = await res.json()
+  const summaries = data.itemSummaries ?? []
+
+  const n = parseInt(number, 10)
+  // match "3/…", "003/…" but not "13/…" (word boundary before the number)
+  const numRe = Number.isNaN(n) ? null : new RegExp(`\\b0*${n}\\s*/\\s*\\d`)
+
+  const values = summaries
+    .filter((it) => {
+      const t = it?.title || ''
+      if (GRADED_RE.test(t)) return false
+      if (numRe && !numRe.test(t)) return false
+      return true
+    })
+    .map((it) => Number(it?.price?.value))
+    .filter((v) => typeof v === 'number' && !Number.isNaN(v) && v > 0)
+
+  const price = median(values)
+  if (price === null) return null
+  return { price, min: Math.min(...values), max: Math.max(...values), num: values.length }
+}
+
 // --- graded search ---
 
 // Search eBay AU for graded-card asking prices.

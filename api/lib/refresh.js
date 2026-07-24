@@ -92,6 +92,48 @@ async function refreshRawEn(card) {
   return count
 }
 
+// JP raw prices via eBay AU asking (pokemontcg has no JP data). ASKING signal —
+// labelled "asking" in the UI. Stored under source 'ebay', variant 'normal'.
+async function refreshRawJp(card) {
+  const result = await ebay.searchRaw({
+    name: card.name,
+    nameEn: card.name_en,
+    number: card.number,
+    isJapanese: true,
+  })
+  if (!result) return 0
+
+  const now = new Date().toISOString()
+  const day = utcDay()
+
+  const { error: cacheErr } = await supabaseAdmin.from('price_cache').upsert(
+    {
+      card_id: card.id,
+      variant_type: 'normal',
+      source: 'ebay',
+      market_price: result.price,
+      currency: 'AUD',
+      updated_at: now,
+    },
+    { onConflict: 'card_id,variant_type,source' }
+  )
+  if (cacheErr) throw new Error(`price_cache upsert failed: ${cacheErr.message}`)
+
+  const { error: histErr } = await supabaseAdmin.from('price_history').upsert(
+    {
+      card_id: card.id,
+      variant_type: 'normal',
+      day,
+      market_price: result.price,
+      currency: 'AUD',
+    },
+    { onConflict: 'card_id,variant_type,day' }
+  )
+  if (histErr) throw new Error(`price_history upsert failed: ${histErr.message}`)
+
+  return 1
+}
+
 async function refreshGraded(card, gradedList) {
   const isJapanese = card.language === 'JP'
   // Keep it simple: pass the set_id through as the set code for JP queries.
@@ -155,7 +197,8 @@ export async function refreshCard(card, gradedList = []) {
   if (card.language === 'EN') {
     raw = await refreshRawEn(card)
   } else {
-    // TODO: JP raw pricing via TCGdex / Cardmarket — pokemontcg has no JP data.
+    // JP: eBay AU asking price (pokemontcg has no JP data).
+    raw = await refreshRawJp(card)
   }
 
   let graded = 0

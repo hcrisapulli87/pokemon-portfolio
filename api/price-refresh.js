@@ -27,7 +27,7 @@ export default async function handler(req, res) {
 
     const { data: card, error: cardErr } = await supabaseAdmin
       .from('cards')
-      .select('id, language, name, number, set_id')
+      .select('id, language, name, name_en, number, set_id')
       .eq('id', cardId)
       .single()
     if (cardErr || !card) {
