@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import CardTile from '../components/CardTile'
 import AddToCollectionModal from '../components/AddToCollectionModal'
+import AddGradedModal from '../components/AddGradedModal'
 
 // Pick a representative price for a card from its price_cache rows:
 // prefer the 'normal' variant, otherwise the highest market_price.
@@ -23,7 +24,8 @@ export default function Search() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [searched, setSearched] = useState(false)
-  const [adding, setAdding] = useState(null) // card being added
+  const [adding, setAdding] = useState(null) // card being added (raw)
+  const [gradedCard, setGradedCard] = useState(null) // card being added (graded)
   const reqId = useRef(0)
 
   async function runSearch(q) {
@@ -108,6 +110,7 @@ export default function Search() {
               card={card}
               price={prices[card.id]}
               onAdd={setAdding}
+              onAddGraded={setGradedCard}
             />
           ))}
         </div>
@@ -163,6 +166,14 @@ export default function Search() {
         <AddToCollectionModal
           card={adding}
           onClose={() => setAdding(null)}
+          onSaved={() => {}}
+        />
+      )}
+
+      {gradedCard && (
+        <AddGradedModal
+          card={gradedCard}
+          onClose={() => setGradedCard(null)}
           onSaved={() => {}}
         />
       )}

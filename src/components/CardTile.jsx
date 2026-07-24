@@ -14,7 +14,7 @@ function LangBadge({ language }) {
   )
 }
 
-export default function CardTile({ card, price, onAdd }) {
+export default function CardTile({ card, price, onAdd, onAddGraded }) {
   return (
     <div className="flex flex-col overflow-hidden rounded-xl border border-white/10 bg-white/5 transition hover:border-white/20">
       <div className="relative aspect-[3/4] w-full bg-[#0b1020]">
@@ -46,13 +46,25 @@ export default function CardTile({ card, price, onAdd }) {
 
         <div className="mt-auto flex items-center justify-between gap-2 pt-1">
           <PriceLabel price={price} />
-          {onAdd && (
-            <button
-              onClick={() => onAdd(card)}
-              className="shrink-0 rounded-lg bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-indigo-500"
-            >
-              Add
-            </button>
+          {(onAdd || onAddGraded) && (
+            <div className="flex shrink-0 items-center gap-1">
+              {onAdd && (
+                <button
+                  onClick={() => onAdd(card)}
+                  className="rounded-lg bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-indigo-500"
+                >
+                  Add
+                </button>
+              )}
+              {onAddGraded && (
+                <button
+                  onClick={() => onAddGraded(card)}
+                  className="rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-xs font-medium text-gray-200 transition hover:bg-white/10"
+                >
+                  Graded
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
