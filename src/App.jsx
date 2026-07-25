@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
-import Nav from './components/Nav'
 import BottomNav from './components/BottomNav'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -11,11 +10,12 @@ import MasterSets from './pages/MasterSets'
 import SetDetail from './pages/SetDetail'
 import Settings from './pages/Settings'
 
+// Mobile-first: one centered ~460px column at every width, with the floating
+// liquid-glass nav (BottomNav) pinned to the bottom of the viewport.
 function Layout() {
   return (
-    <div className="md:flex">
-      <Nav />
-      <main className="flex-1 p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-8 md:pb-8">
+    <div className="relative mx-auto min-h-screen w-full max-w-[460px] bg-vault-bg">
+      <main className="px-[18px] pt-[calc(18px+env(safe-area-inset-top))] pb-[128px]">
         <Outlet />
       </main>
       <BottomNav />

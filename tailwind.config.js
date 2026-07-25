@@ -8,6 +8,8 @@ export default {
           bg: '#0e0b1a',
           surface: '#171227',
           surface2: '#1e1735',
+          hero: '#150f28',
+          muted: '#9b93b8',
           glass: 'rgba(120,120,140,0.28)',
         },
         holo: {
