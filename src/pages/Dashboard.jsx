@@ -3,9 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { setCompletion } from '../lib/completion'
-import StatTile from '../components/StatTile'
 import ProgressRing from '../components/ProgressRing'
-import HeroValueCard from '../components/HeroValueCard'
 
 // ---- helpers ----------------------------------------------------------------
 
@@ -149,6 +147,15 @@ function CompletionRow({ set, comp }) {
   )
 }
 
+function StatMini({ label, value }) {
+  return (
+    <div className="rounded-2xl border border-white/[0.06] bg-vault-surface p-[14px]">
+      <div className="text-[10px] uppercase tracking-wide text-vault-muted">{label}</div>
+      <div className="mt-1 text-lg font-bold text-white">{value}</div>
+    </div>
+  )
+}
+
 // ---- page -------------------------------------------------------------------
 
 export default function Dashboard() {
@@ -164,7 +171,9 @@ export default function Dashboard() {
   const [gradedCount, setGradedCount] = useState(0)
 
   const [trend, setTrend] = useState([]) // [{ day, total }]
+  const [deltaPct, setDeltaPct] = useState(null) // % change over the trend window
   const [chasedSets, setChasedSets] = useState([]) // [{ set, comp }]
+  const [freshPulls, setFreshPulls] = useState([]) // recently added cards
 
   const load = useCallback(async () => {
     if (!uid) {
@@ -276,6 +285,39 @@ export default function Dashboard() {
       .sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0))
     setTrend(trendPoints)
 
+    // delta % across the window (drives the hero "▲ +x% this month" line)
+    if (trendPoints.length >= 2 && trendPoints[0].total > 0) {
+      const first = trendPoints[0].total
+      const last = trendPoints[trendPoints.length - 1].total
+      setDeltaPct(((last - first) / first) * 100)
+    } else {
+      setDeltaPct(null)
+    }
+
+    // fresh pulls — most recently added cards (with art) for the home strip
+    const { data: freshRows } = await supabase
+      .from('collection')
+      .select('card_id,added_at')
+      .eq('user_id', uid)
+      .order('added_at', { ascending: false })
+      .limit(12)
+    const freshIds = []
+    for (const r of freshRows || []) {
+      if (!freshIds.includes(r.card_id)) freshIds.push(r.card_id)
+      if (freshIds.length >= 6) break
+    }
+    if (freshIds.length) {
+      const { data: freshCards } = await supabase
+        .from('cards')
+        .select('id,name,image_small')
+        .in('id', freshIds)
+      const byId = {}
+      for (const c of freshCards || []) byId[c.id] = c
+      setFreshPulls(freshIds.map((id) => byId[id]).filter(Boolean))
+    } else {
+      setFreshPulls([])
+    }
+
     // 5) completion for chased sets
     const { data: chaseRows } = await supabase
       .from('chased_sets')
@@ -333,50 +375,112 @@ export default function Dashboard() {
   }, [uid, load])
 
   const total = rawValue + gradedValue
-
-  if (!uid) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-gray-400">Sign in to see your portfolio.</p>
-      </div>
-    )
-  }
+  const avatarInitial = (session?.user?.email || 'S').trim().charAt(0).toUpperCase()
+  const [dollars, cents] = fmtAUD(total).split('.')
+  const topChase = chasedSets[0]
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
+    <div className="space-y-4">
+      {/* Header — wordmark + settings avatar */}
+      <div className="flex items-center justify-between">
+        <div className="bg-holo-gradient bg-clip-text text-xl font-extrabold text-transparent">
+          PokéVault
+        </div>
+        <Link
+          to="/settings"
+          aria-label="Settings"
+          className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-vault-surface2 text-[13px] font-semibold text-[#c4b8ff]"
+        >
+          {avatarInitial}
+        </Link>
+      </div>
 
       {error && <p className="text-sm text-red-400">{error}</p>}
 
-      {loading ? (
+      {!uid ? (
+        <p className="text-gray-400">Sign in to see your portfolio.</p>
+      ) : loading ? (
         <p className="text-gray-400">Loading…</p>
       ) : (
         <>
-          {/* Portfolio total + stat tiles */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="sm:col-span-2 lg:col-span-1">
-              <HeroValueCard
-                label="Total portfolio"
-                value={fmtAUD(total)}
-                note="graded portion is asking"
-              />
+          {/* Hero — portfolio value */}
+          <div className="rounded-[20px] bg-holo-gradient p-[2px]">
+            <div className="rounded-[18px] bg-vault-hero p-[18px]">
+              <div className="text-[11px] uppercase tracking-[1px] text-vault-muted">
+                Portfolio value
+              </div>
+              <div className="mt-1 text-[34px] font-extrabold leading-none text-white">
+                {dollars}
+                {cents && <span className="text-lg text-vault-muted">.{cents}</span>}
+              </div>
+              {deltaPct != null && (
+                <div
+                  className={`mt-1 text-xs font-semibold ${
+                    deltaPct >= 0 ? 'text-holo-cyan' : 'text-red-400'
+                  }`}
+                >
+                  {deltaPct >= 0 ? '▲' : '▼'} {deltaPct >= 0 ? '+' : ''}
+                  {deltaPct.toFixed(1)}% this month
+                </div>
+              )}
             </div>
-            <StatTile label="Raw collection" value={fmtAUD(rawValue)} />
-            <StatTile label="Graded value" value={fmtAUD(gradedValue)} note="asking prices" />
-            <StatTile
-              label="Cards owned"
-              value={collectionQty + gradedCount}
-              note={`${collectionQty} raw · ${gradedCount} graded`}
-            />
           </div>
 
-          {/* Value trend */}
-          <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">
-              Value trend
-            </h2>
-            <div className="rounded-xl border border-white/10 bg-vault-surface p-4">
+          {/* Stat grid */}
+          <div className="grid grid-cols-2 gap-[10px]">
+            <StatMini label="Raw" value={fmtAUD(rawValue)} />
+            <StatMini label="Graded" value={fmtAUD(gradedValue)} />
+            <Link
+              to={topChase ? `/sets/${topChase.set.id}` : '/sets'}
+              className="col-span-2 flex items-center justify-between rounded-2xl border border-white/[0.06] bg-vault-surface p-[14px]"
+            >
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase tracking-wide text-vault-muted">
+                  Chasing
+                </div>
+                <div className="mt-1 truncate text-sm font-semibold text-white">
+                  {topChase
+                    ? `${topChase.set.name} · ${topChase.comp?.pct ?? 0}%`
+                    : 'Chase a set to track it'}
+                </div>
+              </div>
+              <ProgressRing
+                pct={topChase?.comp?.pct ?? 0}
+                color="#67e8f9"
+                size={40}
+                thickness={4}
+              />
+            </Link>
+          </div>
+
+          {/* Fresh pulls */}
+          {freshPulls.length > 0 && (
+            <div className="space-y-2.5">
+              <div className="text-[13px] font-bold text-[#e5deff]">Fresh pulls</div>
+              <div className="flex gap-[10px] overflow-x-auto pb-1">
+                {freshPulls.map((c) => (
+                  <div
+                    key={c.id}
+                    className="h-[90px] w-[66px] shrink-0 overflow-hidden rounded-[10px] bg-black"
+                  >
+                    {c.image_small && (
+                      <img
+                        src={c.image_small}
+                        alt={c.name}
+                        loading="lazy"
+                        className="h-full w-full object-contain"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Value trend (kept from the fuller dashboard) */}
+          <section className="space-y-2.5 pt-2">
+            <h2 className="text-[13px] font-bold text-[#e5deff]">Value trend</h2>
+            <div className="rounded-2xl border border-white/[0.06] bg-vault-surface p-4">
               {trend.length >= 2 ? (
                 <TrendChart points={trend} />
               ) : (
@@ -387,23 +491,17 @@ export default function Dashboard() {
             </div>
           </section>
 
-          {/* Completion summary */}
-          <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">
-              Chased sets
-            </h2>
-            {chasedSets.length === 0 ? (
-              <p className="text-sm text-gray-500">
-                Chase a set to track completion.
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+          {/* Chased sets */}
+          {chasedSets.length > 0 && (
+            <section className="space-y-2.5 pt-2">
+              <h2 className="text-[13px] font-bold text-[#e5deff]">Chased sets</h2>
+              <div className="grid grid-cols-1 gap-2">
                 {chasedSets.map(({ set, comp }) => (
                   <CompletionRow key={set.id} set={set} comp={comp} />
                 ))}
               </div>
-            )}
-          </section>
+            </section>
+          )}
         </>
       )}
     </div>
