@@ -201,7 +201,7 @@ export default function SetDetail() {
       <div className="space-y-4">
         <button
           onClick={() => navigate('/sets')}
-          className="text-sm text-indigo-400 hover:text-indigo-300"
+          className="text-sm text-holo-cyan transition hover:opacity-80"
         >
           ← Sets
         </button>
@@ -215,7 +215,7 @@ export default function SetDetail() {
       <div className="space-y-4">
         <button
           onClick={() => navigate('/sets')}
-          className="text-sm text-indigo-400 hover:text-indigo-300"
+          className="text-sm text-holo-cyan transition hover:opacity-80"
         >
           ← Sets
         </button>
@@ -230,14 +230,14 @@ export default function SetDetail() {
     <div className="space-y-6">
       <button
         onClick={() => navigate('/sets')}
-        className="text-sm text-indigo-400 hover:text-indigo-300"
+        className="text-sm text-holo-cyan transition hover:opacity-80"
       >
         ← Sets
       </button>
 
       {/* Header */}
       <div className="flex flex-wrap items-center gap-4 rounded-xl border border-white/10 bg-white/5 p-4">
-        <div className="flex h-16 w-28 shrink-0 items-center justify-center rounded-lg bg-[#0b1020] p-2">
+        <div className="flex h-16 w-28 shrink-0 items-center justify-center rounded-lg bg-black p-2">
           {set?.logo_url ? (
             <img
               src={set.logo_url}
@@ -266,13 +266,13 @@ export default function SetDetail() {
               <span>
                 {completion.owned}/{completion.total} variants
               </span>
-              <span className="font-semibold text-emerald-400">
+              <span className="font-semibold text-holo-cyan">
                 {completion.pct}%
               </span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
               <div
-                className="h-full rounded-full bg-emerald-500 transition-all"
+                className="h-full rounded-full bg-holo-cta transition-all"
                 style={{ width: `${completion.pct}%` }}
               />
             </div>
@@ -282,7 +282,7 @@ export default function SetDetail() {
           <button
             onClick={refreshPrices}
             disabled={refreshing}
-            className="shrink-0 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-50"
+            className="shrink-0 rounded-lg bg-holo-cta px-3 py-2 text-sm font-medium text-vault-bg transition hover:opacity-90 disabled:opacity-50"
           >
             {refreshing
               ? `Refreshing ${refreshProgress.done}/${refreshProgress.total}…`
@@ -299,7 +299,7 @@ export default function SetDetail() {
 
       {/* Card grid */}
       {cards.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3">
           {cards.map((card) => {
             const variants = variantsByCard[card.id] || []
             return (
@@ -307,7 +307,7 @@ export default function SetDetail() {
                 key={card.id}
                 className="flex flex-col overflow-hidden rounded-xl border border-white/10 bg-white/5"
               >
-                <div className="relative aspect-[3/4] w-full bg-[#0b1020]">
+                <div className="relative aspect-[3/4] w-full bg-black">
                   {card.image_small ? (
                     <img
                       src={card.image_small}
@@ -359,7 +359,7 @@ export default function SetDetail() {
                           }
                           className={`rounded px-1.5 py-0.5 text-[10px] font-medium capitalize transition disabled:opacity-40 ${
                             isOwned
-                              ? 'bg-emerald-500/25 text-emerald-300 ring-1 ring-emerald-500/40'
+                              ? 'bg-holo-cyan/20 text-holo-cyan ring-1 ring-holo-cyan/40'
                               : 'bg-white/5 text-gray-500 hover:bg-white/10 hover:text-gray-300'
                           }`}
                         >
