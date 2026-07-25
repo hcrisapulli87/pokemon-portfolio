@@ -1,8 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import HoloCardTile from './HoloCardTile'
 import AddToCollectionModal from './AddToCollectionModal'
 import AddGradedModal from './AddGradedModal'
+
+const AUD = new Intl.NumberFormat('en-AU', {
+  style: 'currency',
+  currency: 'AUD',
+  currencyDisplay: 'narrowSymbol',
+  maximumFractionDigits: 2,
+})
+const fmtAUD = (n) => (n == null ? '—' : AUD.format(Number(n) || 0))
 
 // Pick a representative price for a card from its price_cache rows:
 // prefer the 'normal' variant, otherwise the highest market_price.
@@ -112,13 +119,46 @@ export default function CardSearchOverlay({ mode = 'raw', onClose }) {
   function Section({ title, items }) {
     if (items.length === 0) return null
     return (
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">
-          {title} <span className="text-gray-600">({items.length})</span>
+      <section className="space-y-2.5">
+        <h2 className="text-[11px] font-bold uppercase tracking-[1px] text-vault-muted">
+          {title} ({items.length})
         </h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3">
           {items.map((card) => (
-            <HoloCardTile key={card.id} card={card} price={prices[card.id]} onAdd={setPicked} />
+            <div
+              key={card.id}
+              className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-vault-surface"
+            >
+              <div className="aspect-[3/4] bg-black">
+                {card.image_small ? (
+                  <img
+                    src={card.image_small}
+                    alt={card.name}
+                    loading="lazy"
+                    className="h-full w-full object-contain"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-3xl text-gray-700">
+                    🃏
+                  </div>
+                )}
+              </div>
+              <div className="p-2">
+                <div className="truncate text-xs font-semibold text-white" title={card.name}>
+                  {card.name}
+                </div>
+                <div className="mt-0.5 text-xs font-bold text-holo-cyan">
+                  {fmtAUD(prices[card.id])}
+                </div>
+              </div>
+              <button
+                onClick={() => setPicked(card)}
+                aria-label={`Add ${card.name}`}
+                className="absolute bottom-2 right-2 flex h-6 w-6 items-center justify-center rounded-lg bg-holo-cta text-sm font-extrabold leading-none text-vault-bg"
+              >
+                +
+              </button>
+            </div>
           ))}
         </div>
       </section>
@@ -126,14 +166,14 @@ export default function CardSearchOverlay({ mode = 'raw', onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-vault-bg">
+    <div className="fixed inset-0 z-40 mx-auto flex max-w-[460px] flex-col bg-vault-bg">
       {/* Header + search box */}
-      <div className="sticky top-0 z-10 border-b border-white/10 bg-vault-surface/95 p-4 pt-[calc(1rem+env(safe-area-inset-top))] backdrop-blur">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h1 className="text-lg font-bold">{heading}</h1>
+      <div className="sticky top-0 z-10 border-b border-white/10 bg-vault-bg/95 px-[18px] pb-3 pt-[calc(1rem+env(safe-area-inset-top))] backdrop-blur">
+        <div className="mb-2.5 flex items-center justify-between gap-3">
+          <h1 className="text-[17px] font-extrabold text-white">{heading}</h1>
           <button
             onClick={onClose}
-            className="rounded-lg px-3 py-1.5 text-sm text-gray-300 transition hover:bg-white/10"
+            className="text-xs text-vault-muted transition hover:text-gray-200"
             aria-label="Close search"
           >
             ✕ Close
@@ -145,12 +185,12 @@ export default function CardSearchOverlay({ mode = 'raw', onClose }) {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search cards by name or number…"
           autoFocus
-          className="w-full rounded-lg border border-white/10 bg-vault-surface2 px-4 py-2.5 text-gray-100 placeholder-gray-500 outline-none focus:border-holo-cyan focus:ring-1 focus:ring-holo-cyan"
+          className="w-full rounded-xl border border-white/[0.08] bg-vault-surface px-3 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:border-holo-cyan focus:ring-1 focus:ring-holo-cyan"
         />
       </div>
 
       {/* Results */}
-      <div className="flex-1 space-y-6 overflow-y-auto p-4 pb-[calc(2rem+env(safe-area-inset-bottom))]">
+      <div className="flex-1 space-y-6 overflow-y-auto px-[18px] py-3.5 pb-[calc(2rem+env(safe-area-inset-bottom))]">
         {error && <p className="text-sm text-red-400">{error}</p>}
         {loading && <p className="text-gray-400">Searching…</p>}
 
@@ -163,7 +203,7 @@ export default function CardSearchOverlay({ mode = 'raw', onClose }) {
         )}
 
         {!loading && cards.length > 0 && (
-          <div className="space-y-8">
+          <div className="space-y-6">
             <Section title="English" items={english} />
             <Section title="Japanese" items={japanese} />
           </div>
