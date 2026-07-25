@@ -1,9 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import PriceLabel from '../components/PriceLabel'
 import CardSearchOverlay from '../components/CardSearchOverlay'
-import HoloCardTile from '../components/HoloCardTile'
+
+const AUD = new Intl.NumberFormat('en-AU', {
+  style: 'currency',
+  currency: 'AUD',
+  currencyDisplay: 'narrowSymbol',
+  maximumFractionDigits: 0,
+})
+const fmtAUD = (n) => AUD.format(Number(n) || 0)
 
 function priceKey(cardId, company, grade) {
   return `${cardId}::${company}::${Number(grade)}`
@@ -132,24 +138,14 @@ export default function Graded() {
   const totalValue = items.reduce((sum, r) => sum + (r.avgPrice ?? 0), 0)
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold">Graded</h1>
-        <button
-          onClick={() => setSearching(true)}
-          className="rounded-lg bg-holo-cta px-3 py-2 text-sm font-medium text-vault-bg transition hover:opacity-90"
-        >
-          ＋ Add graded
-        </button>
-      </div>
-      {items.length > 0 && (
-        <div className="text-sm text-gray-400">
-          {items.length} {items.length === 1 ? 'card' : 'cards'} ·{' '}
-          <span className="text-gray-200">
-            Total value <PriceLabel price={totalValue} asking />
-          </span>
+    <div className="space-y-3.5">
+      <div>
+        <h1 className="text-[22px] font-extrabold text-white">Graded</h1>
+        <div className="mt-0.5 text-xs text-vault-muted">
+          {items.length} {items.length === 1 ? 'slab' : 'slabs'} ·{' '}
+          <span className="font-bold text-holo-gold">{fmtAUD(totalValue)} (asking)</span>
         </div>
-      )}
+      </div>
 
       {searching && (
         <CardSearchOverlay mode="graded" onClose={() => setSearching(false)} />
@@ -161,23 +157,58 @@ export default function Graded() {
 
       {!loading && items.length === 0 && !error && (
         <p className="text-gray-400">
-          No graded cards yet. Tap <span className="text-gray-200">＋ Add graded</span> to
-          search the catalog and add one.
+          No graded cards yet. Tap the{' '}
+          <span className="font-bold text-holo-cyan">＋</span> in the nav and add one as a
+          graded card.
         </p>
       )}
 
       {!loading && items.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-          {items.map((row) => (
-            <HoloCardTile
-              key={row.id}
-              card={row.card}
-              price={row.avgPrice}
-              graded={{ company: row.company, grade: row.grade, cert_number: row.cert_number }}
-              onDelete={() => handleDelete(row.id)}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            {items.map((row) => (
+              <div key={row.id} className="rounded-2xl bg-holo-gradient p-[2px]">
+                <div className="overflow-hidden rounded-[14px] bg-vault-hero">
+                  <div className="relative aspect-[3/4] bg-black p-2">
+                    {row.card.image_small ? (
+                      <img
+                        src={row.card.image_small}
+                        alt={row.card.name}
+                        loading="lazy"
+                        className="h-full w-full object-contain"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-3xl text-gray-700">
+                        🃏
+                      </div>
+                    )}
+                    <button
+                      onClick={() => handleDelete(row.id)}
+                      aria-label="Remove graded card"
+                      className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-xs text-red-300 transition hover:bg-black/80"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="p-2">
+                    <div className="text-[10px] font-extrabold tracking-[0.5px] text-holo-gold">
+                      {row.company} {row.grade}
+                    </div>
+                    <div className="mt-0.5 truncate text-xs font-semibold text-white" title={row.card.name}>
+                      {row.card.name}
+                    </div>
+                    <div className="mt-0.5 text-[13px] font-bold text-holo-cyan">
+                      {row.avgPrice != null ? fmtAUD(row.avgPrice) : '—'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-center text-[10px] text-[#7a7599]">
+            Graded values are eBay active-listing asking prices
+          </p>
+        </>
       )}
     </div>
   )

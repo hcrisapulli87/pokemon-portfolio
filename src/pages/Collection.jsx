@@ -1,9 +1,17 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import HoloCardTile from '../components/HoloCardTile'
-import PriceLabel from '../components/PriceLabel'
 import CardSearchOverlay from '../components/CardSearchOverlay'
+
+const AUD = new Intl.NumberFormat('en-AU', {
+  style: 'currency',
+  currency: 'AUD',
+  currencyDisplay: 'narrowSymbol',
+  maximumFractionDigits: 2,
+})
+const fmtAUD = (n) => AUD.format(Number(n) || 0)
+
+const FILTERS = ['All', 'EN', 'JP']
 
 // Pick a price for a collection row: prefer the exact variant, then 'normal',
 // then the highest cached price. Cards are often added as 'normal' while the
@@ -31,6 +39,7 @@ export default function Collection() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [searching, setSearching] = useState(false)
+  const [lang, setLang] = useState('All') // All | EN | JP
   const [refreshing, setRefreshing] = useState(false)
   const [refreshProgress, setRefreshProgress] = useState({ done: 0, total: 0 })
   const reqId = useRef(0)
@@ -203,38 +212,54 @@ export default function Collection() {
 
   const totalValue = items.reduce((sum, r) => sum + (r.value ?? 0), 0)
 
+  const filtered = useMemo(() => {
+    if (lang === 'All') return items
+    return items.filter((r) => (r.card.language || 'EN') === lang)
+  }, [items, lang])
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold">Collection</h1>
-        <div className="flex items-center gap-2">
+    <div className="space-y-3.5">
+      <div>
+        <h1 className="text-[22px] font-extrabold text-white">Collection</h1>
+        <div className="mt-0.5 text-xs text-vault-muted">
+          {items.length} {items.length === 1 ? 'card' : 'cards'} ·{' '}
+          <span className="font-bold text-holo-cyan">{fmtAUD(totalValue)}</span>
           {items.length > 0 && (
-            <button
-              onClick={refreshPrices}
-              disabled={refreshing}
-              className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm font-medium text-gray-200 transition hover:bg-white/10 disabled:opacity-50"
-            >
-              {refreshing
-                ? `Refreshing ${refreshProgress.done}/${refreshProgress.total}…`
-                : '↻ Refresh prices'}
-            </button>
+            <>
+              {' · '}
+              <button
+                onClick={refreshPrices}
+                disabled={refreshing}
+                className="underline decoration-dotted underline-offset-2 transition hover:text-gray-200 disabled:opacity-50"
+              >
+                {refreshing
+                  ? `Refreshing ${refreshProgress.done}/${refreshProgress.total}…`
+                  : '↻ Refresh prices'}
+              </button>
+            </>
           )}
-          <button
-            onClick={() => setSearching(true)}
-            className="rounded-lg bg-holo-cta px-3 py-2 text-sm font-medium text-vault-bg transition hover:opacity-90"
-          >
-            ＋ Add card
-          </button>
         </div>
       </div>
-      {items.length > 0 && (
-        <div className="text-sm text-gray-400">
-          {items.length} {items.length === 1 ? 'entry' : 'entries'} ·{' '}
-          <span className="text-gray-200">
-            Total value <PriceLabel price={totalValue} />
-          </span>
-        </div>
-      )}
+
+      {/* Language filter chips */}
+      <div className="flex gap-2">
+        {FILTERS.map((f) => {
+          const active = lang === f
+          return (
+            <button
+              key={f}
+              onClick={() => setLang(f)}
+              className={`rounded-full px-3.5 py-1.5 text-xs transition ${
+                active
+                  ? 'bg-holo-cta font-bold text-vault-bg'
+                  : 'bg-vault-surface text-vault-muted'
+              }`}
+            >
+              {f}
+            </button>
+          )
+        })}
+      </div>
 
       {searching && (
         <CardSearchOverlay mode="raw" onClose={() => setSearching(false)} />
@@ -246,24 +271,42 @@ export default function Collection() {
 
       {!loading && items.length === 0 && !error && (
         <p className="text-gray-400">
-          Your collection is empty. Tap <span className="text-gray-200">＋ Add card</span> to
-          search the catalog and add one.
+          Your collection is empty. Tap the{' '}
+          <span className="font-bold text-holo-cyan">＋</span> in the nav to search the
+          catalog and add a card.
         </p>
       )}
 
-      {!loading && items.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-          {items.map((row) => (
-            <div key={row.id} className="flex flex-col gap-2">
-              <div className="relative">
-                <HoloCardTile card={row.card} price={row.value} />
+      {!loading && items.length > 0 && filtered.length === 0 && (
+        <p className="text-gray-400">No {lang} cards in your collection.</p>
+      )}
+
+      {!loading && filtered.length > 0 && (
+        <div className="grid grid-cols-2 gap-3">
+          {filtered.map((row) => (
+            <div
+              key={row.id}
+              className="overflow-hidden rounded-2xl border border-white/[0.06] bg-vault-surface"
+            >
+              <div className="relative aspect-[3/4] bg-black">
+                {row.card.image_small ? (
+                  <img
+                    src={row.card.image_small}
+                    alt={row.card.name}
+                    loading="lazy"
+                    className="h-full w-full object-contain"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-3xl text-gray-700">
+                    🃏
+                  </div>
+                )}
                 <div className="pointer-events-none absolute left-1.5 top-1.5 flex flex-col gap-1">
-                  <span className="rounded bg-holo-indigo/90 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                    ×{row.quantity}
-                  </span>
-                  <span className="rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-gray-200">
-                    {row.condition}
-                  </span>
+                  {row.quantity > 1 && (
+                    <span className="rounded bg-holo-indigo/90 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                      ×{row.quantity}
+                    </span>
+                  )}
                   {row.variant_type !== 'normal' && (
                     <span className="rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-gray-300">
                       {row.variant_type.replace(/_/g, ' ')}
@@ -280,34 +323,43 @@ export default function Collection() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between gap-1 px-0.5">
-                <div className="flex items-center gap-1">
+              <div className="p-2">
+                <div className="truncate text-xs font-semibold text-white" title={row.card.name}>
+                  {row.card.name}
+                </div>
+                <div className="mt-0.5 text-xs font-bold text-holo-cyan">
+                  {row.value != null ? fmtAUD(row.value) : '—'}
+                </div>
+
+                <div className="mt-2 flex items-center justify-between border-t border-white/[0.06] pt-2">
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleQuantity(row.id, row.quantity - 1)}
+                      disabled={row.quantity <= 1}
+                      className="flex h-6 w-6 items-center justify-center rounded bg-white/5 text-gray-300 transition hover:bg-white/10 disabled:opacity-40"
+                      aria-label="Decrease quantity"
+                    >
+                      −
+                    </button>
+                    <span className="w-5 text-center text-xs text-gray-200">
+                      {row.quantity}
+                    </span>
+                    <button
+                      onClick={() => handleQuantity(row.id, row.quantity + 1)}
+                      className="flex h-6 w-6 items-center justify-center rounded bg-white/5 text-gray-300 transition hover:bg-white/10"
+                      aria-label="Increase quantity"
+                    >
+                      +
+                    </button>
+                  </div>
                   <button
-                    onClick={() => handleQuantity(row.id, row.quantity - 1)}
-                    disabled={row.quantity <= 1}
-                    className="h-6 w-6 rounded bg-white/5 text-gray-300 transition hover:bg-white/10 disabled:opacity-40"
-                    aria-label="Decrease quantity"
+                    onClick={() => handleDelete(row.id)}
+                    className="rounded px-1.5 py-1 text-[11px] text-red-400 transition hover:bg-red-500/10"
+                    aria-label="Remove from collection"
                   >
-                    −
-                  </button>
-                  <span className="w-6 text-center text-sm text-gray-200">
-                    {row.quantity}
-                  </span>
-                  <button
-                    onClick={() => handleQuantity(row.id, row.quantity + 1)}
-                    className="h-6 w-6 rounded bg-white/5 text-gray-300 transition hover:bg-white/10"
-                    aria-label="Increase quantity"
-                  >
-                    +
+                    Delete
                   </button>
                 </div>
-                <button
-                  onClick={() => handleDelete(row.id)}
-                  className="rounded px-2 py-1 text-xs text-red-400 transition hover:bg-red-500/10"
-                  aria-label="Remove from collection"
-                >
-                  Delete
-                </button>
               </div>
             </div>
           ))}
